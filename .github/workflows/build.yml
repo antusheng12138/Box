@@ -21,7 +21,7 @@ jobs:
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           chmod +x gradlew
-          ./gradlew :app:assembleArm64GenericPythonRelease --no-daemon
+          ./gradlew :app:assembleArm64GenericNormalRelease --no-daemon
       - name: 发布 Release
         uses: softprops/action-gh-release@v2
         with:
