@@ -19,6 +19,7 @@ jobs:
           java-version: 11
       - name: 编译 arm64 release
         run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
           chmod +x gradlew
           ./gradlew :app:assembleArm64GenericPythonRelease --no-daemon
       - name: 发布 Release
