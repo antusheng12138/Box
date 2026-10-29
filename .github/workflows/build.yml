@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 11
+          java-version: 17
       - name: 编译 arm64 release
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
