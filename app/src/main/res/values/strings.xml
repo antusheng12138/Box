@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">TVBox</string>
+    <string name="app_name">安徒生</string>
     <string name="app_home">Home</string>
-    <string name="app_source"></string>
+    <string name="app_source">https://cdn.jsdelivr.net/gh/Lightconer/tvbox-ysc-config@main/output/多仓订阅.json</string>
 
     // Home Page //
     <string name="hm_ok">Load Complete</string>
