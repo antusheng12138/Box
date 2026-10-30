@@ -1047,6 +1047,9 @@ public class PlayFragment extends BaseLazyFragment {
             checkDanmu("");
             return;
         }
+        vodName = vodName.replaceAll("[\u300a\u300b\u3010\u3011\\[\\]()\uff08\uff09]", " ")
+                .replaceAll("(?i)(\u5168\u96c6|\u5168\u96c6\u5b8c|\u5728\u7ebf\u89c2\u770b|\u5b8c\u6574\u7248|\u56fd\u8bed\u7248|\u84dd\u5149|HD|4K)", " ")
+                .replaceAll("\\s+", " ").trim();
         DanmuFetcher.fetch(vodName, new DanmuFetcher.Callback() {
             @Override
             public void onResult(final String xml) {
@@ -1054,7 +1057,11 @@ public class PlayFragment extends BaseLazyFragment {
                 requireActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if (!TextUtils.isEmpty(xml)) Toast.makeText(requireActivity(), "已加载网络弹幕", Toast.LENGTH_SHORT).show();
+                        if (!TextUtils.isEmpty(xml)) {
+                            Toast.makeText(requireActivity(), "已加载网络弹幕", Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(requireActivity(), "没搜到网络弹幕", Toast.LENGTH_SHORT).show();
+                        }
                         checkDanmu(xml);
                     }
                 });

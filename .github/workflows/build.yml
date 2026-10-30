@@ -41,9 +41,14 @@ jobs:
           git add signing/debug.keystore
           git commit -m "chore: 固定签名" || true
           git push || true
+      - name: 重命名产物
+        run: |
+          mkdir -p out
+          cp $(find app/build/outputs -name "*.apk" | head -1) out/antusheng-tv.apk
+          ls -l out/
       - name: 发布 Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: custom
           name: 安徒生定制版
-          files: app/build/outputs/apk/**/release/*.apk
+          files: out/*.apk
