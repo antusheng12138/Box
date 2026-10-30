@@ -938,12 +938,6 @@ public class HomeActivity extends BaseActivity {
 
         dialog.setAdapter(tvRecyclerView, iface, diff, sites, 0);
         dialog.show();
-        dialog.getWindow().getDecorView().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                runSpeedTest(sites, dialog, tvRecyclerView, diff);
-            }
-        }, 800);
     }
 
     void runSpeedTest(final List<SourceBean> sites, final SelectDialog<SourceBean> dialog, final TvRecyclerView rv, final DiffUtil.ItemCallback<SourceBean> diff) {
