@@ -45,6 +45,11 @@ import com.github.tvbox.osc.base.BaseLazyFragment;
 import com.github.tvbox.osc.bean.AbsSortXml;
 import com.github.tvbox.osc.bean.MovieSort;
 import com.github.tvbox.osc.bean.SourceBean;
+import com.github.tvbox.osc.util.SourceSpeedTester;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import com.github.tvbox.osc.event.RefreshEvent;
 import com.github.tvbox.osc.server.ControlManager;
 import com.github.tvbox.osc.ui.adapter.HomePageAdapter;
@@ -846,6 +851,8 @@ public class HomeActivity extends BaseActivity {
     }
 
     // Site Switch on Home Button
+    final Map<String, Long> speedMap = new HashMap<>();
+
     void showSiteSwitch() {
         List<SourceBean> sites = new ArrayList<>();
         for (SourceBean sb : ApiConfig.get().getSourceBeanList()) {
@@ -877,7 +884,11 @@ public class HomeActivity extends BaseActivity {
 
                 @Override
                 public String getDisplay(SourceBean val) {
-                    return val.getName();
+                    Long ms = speedMap.get(val.getKey());
+                    if (ms == null) return val.getName();
+                    if (ms == -2L) return val.getName() + " \u00b7 \u5185\u7f6e";
+                    if (ms < 0) return val.getName() + " \u00b7 \u5931\u6548";
+                    return val.getName() + " \u00b7 " + ms + "ms";
                 }
             }, new DiffUtil.ItemCallback<SourceBean>() {
                 @Override
@@ -890,6 +901,47 @@ public class HomeActivity extends BaseActivity {
                     return oldItem.getKey().equals(newItem.getKey());
                 }
             }, sites, sites.indexOf(ApiConfig.get().getHomeSourceBean()));
+            final SelectDialog<SourceBean> dialogRef = dialog;
+            final List<SourceBean> sitesRef = sites;
+            final TvRecyclerView rvRef = tvRecyclerView;
+            SourceSpeedTester.test(sites, new SourceSpeedTester.Callback() {
+                @Override
+                public void onDone(Map<String, Long> delays) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            speedMap.clear();
+                            speedMap.putAll(delays);
+                            int ok = 0;
+                            long best = Long.MAX_VALUE;
+                            String bestName = "";
+                            for (SourceBean sb : sitesRef) {
+                                Long ms = speedMap.get(sb.getKey());
+                                if (ms != null && ms >= 0) {
+                                    ok++;
+                                    if (ms < best) { best = ms; bestName = sb.getName(); }
+                                }
+                            }
+                            Collections.sort(sitesRef, new Comparator<SourceBean>() {
+                                @Override
+                                public int compare(SourceBean a, SourceBean b) {
+                                    long ma = speedMap.containsKey(a.getKey()) ? speedMap.get(a.getKey()) : Long.MAX_VALUE;
+                                    long mb = speedMap.containsKey(b.getKey()) ? speedMap.get(b.getKey()) : Long.MAX_VALUE;
+                                    int ra = ma >= 0 && ma < Long.MAX_VALUE ? 0 : (ma == -2L ? 1 : 2);
+                                    int rb = mb >= 0 && mb < Long.MAX_VALUE ? 0 : (mb == -2L ? 1 : 2);
+                                    if (ra != rb) return ra - rb;
+                                    return Long.compare(ma < 0 ? Long.MAX_VALUE : ma, mb < 0 ? Long.MAX_VALUE : mb);
+                                }
+                            });
+                            if (dialogRef.isShowing()) {
+                                String tip = ok > 0 ? ("\u6d4b\u901f\u5b8c\u6210\uff1a" + ok + "\u4e2a\u53ef\u7528\uff0c\u6700\u5feb " + bestName + " " + best + "ms") : "\u6d4b\u901f\u5b8c\u6210\uff1a\u6682\u65e0\u53ef\u7528\u6e90";
+                                dialogRef.setTip(tip);
+                                rvRef.getAdapter().notifyDataSetChanged();
+                            }
+                        }
+                    });
+                }
+            });
             dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialog) {
