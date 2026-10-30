@@ -1043,7 +1043,7 @@ public class PlayFragment extends BaseLazyFragment {
 
     private void fetchDanmuOnline() {
         String vodName = mVodInfo != null ? mVodInfo.name : null;
-        Toast.makeText(requireActivity(), "弹幕：正在为「" + vodName + "」搜索弹幕库…", Toast.LENGTH_SHORT).show();
+        Toast.makeText(requireActivity(), "弹幕：正在为「" + vodName + "」合并 B 站弹幕…", Toast.LENGTH_SHORT).show();
         if (TextUtils.isEmpty(vodName)) {
             checkDanmu("");
             return;
