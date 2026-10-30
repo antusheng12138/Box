@@ -17,11 +17,25 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      - name: 准备固定签名
+        run: |
+          mkdir -p signing ~/.android
+          if [ ! -f signing/debug.keystore ]; then
+            keytool -genkeypair -v -keystore signing/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          cp signing/debug.keystore ~/.android/debug.keystore
       - name: 编译 arm64 release
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           chmod +x gradlew
           ./gradlew :app:assembleArm64GenericNormalRelease --no-daemon
+      - name: 回存签名（仅首次）
+        run: |
+          git config user.name "bot"
+          git config user.email "bot@local"
+          git add signing/debug.keystore
+          git commit -m "chore: 固定签名" || true
+          git push || true
       - name: 发布 Release
         uses: softprops/action-gh-release@v2
         with:
