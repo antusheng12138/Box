@@ -943,7 +943,32 @@ public class HomeActivity extends BaseActivity {
                             if (dialogRef.isShowing()) {
                                 String tip = ok > 0 ? ("\u6d4b\u901f\u5b8c\u6210\uff1a" + ok + "\u4e2a\u53ef\u7528\uff0c\u6700\u5feb " + bestName + " " + best + "ms") : "\u6d4b\u901f\u5b8c\u6210\uff1a\u6682\u65e0\u53ef\u7528\u6e90";
                                 dialogRef.setTip(tip);
-                                rvRef.getAdapter().notifyDataSetChanged();
+                                dialogRef.setAdapter(rvRef, new SelectDialogAdapter.SelectDialogInterface<SourceBean>() {
+                                    @Override
+                                    public void click(SourceBean value, int pos) {
+                                        ApiConfig.get().setSourceBean(value);
+                                        reloadHome();
+                                    }
+
+                                    @Override
+                                    public String getDisplay(SourceBean val) {
+                                        Long ms = speedMap.get(val.getKey());
+                                        if (ms == null) return val.getName();
+                                        if (ms == -2L) return val.getName() + " \u00b7 \u5185\u7f6e";
+                                        if (ms < 0) return val.getName() + " \u00b7 \u5931\u6548";
+                                        return val.getName() + " \u00b7 " + ms + "ms";
+                                    }
+                                }, new DiffUtil.ItemCallback<SourceBean>() {
+                                    @Override
+                                    public boolean areItemsTheSame(@NonNull @NotNull SourceBean oldItem, @NonNull @NotNull SourceBean newItem) {
+                                        return oldItem == newItem;
+                                    }
+
+                                    @Override
+                                    public boolean areContentsTheSame(@NonNull @NotNull SourceBean oldItem, @NonNull @NotNull SourceBean newItem) {
+                                        return oldItem.getKey().equals(newItem.getKey());
+                                    }
+                                }, sitesRef, sitesRef.indexOf(ApiConfig.get().getHomeSourceBean()));
                             }
                         }
                     });

@@ -24,7 +24,7 @@ public class SourceSpeedTester {
             pool.execute(new Runnable() {
                 @Override
                 public void run() {
-                    delays.put(sb.getKey(), measure(sb.getApi()));
+                    delays.put(sb.getKey(), measure(sb));
                 }
             });
         }
@@ -42,8 +42,20 @@ public class SourceSpeedTester {
         }).start();
     }
 
-    private static long measure(String api) {
-        if (api == null || !api.startsWith("http")) return -2L;
+    private static final java.util.regex.Pattern URL_RE = java.util.regex.Pattern.compile("https?://[^|\\s\\"',\\]}]+");
+
+    private static String extractUrl(SourceBean sb) {
+        String api = sb.getApi();
+        if (api != null && api.startsWith("http")) return api;
+        String ext = sb.getExt();
+        if (ext == null || ext.isEmpty()) return null;
+        java.util.regex.Matcher m = URL_RE.matcher(ext);
+        return m.find() ? m.group() : null;
+    }
+
+    private static long measure(SourceBean sb) {
+        String api = extractUrl(sb);
+        if (api == null) return -2L;
         long t = System.currentTimeMillis();
         HttpURLConnection conn = null;
         try {
