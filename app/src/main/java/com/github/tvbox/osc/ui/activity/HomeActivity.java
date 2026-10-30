@@ -916,6 +916,7 @@ public class HomeActivity extends BaseActivity {
             @Override
             public void click(SourceBean value, int pos) {
                 if (SPEED_TEST_KEY.equals(value.getKey())) {
+                    Toast.makeText(HomeActivity.this, "开始测速，请稍候…", Toast.LENGTH_SHORT).show();
                     runSpeedTest(sites, dialog, tvRecyclerView, diff);
                     return;
                 }
@@ -938,7 +939,7 @@ public class HomeActivity extends BaseActivity {
         for (SourceBean sb : sites) {
             if (!SPEED_TEST_KEY.equals(sb.getKey())) targets.add(sb);
         }
-        dialog.setTip("测速中…请稍候（测完自动排序）");
+        dialog.setTip("测速中… 0/" + targets.size());
         SourceSpeedTester.test(targets, new SourceSpeedTester.Callback() {
             @Override
             public void onDone(final Map<String, Long> delays) {
@@ -990,6 +991,16 @@ public class HomeActivity extends BaseActivity {
                                 }
                             }, diff, sites, 0);
                         }
+                    }
+                });
+            }
+        }, new SourceSpeedTester.Progress() {
+            @Override
+            public void onProgress(final int doneCount, final int total, final Map<String, Long> partial) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (dialog.isShowing()) dialog.setTip("测速中… " + doneCount + "/" + total);
                     }
                 });
             }

@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SourceSpeedTester {
 
@@ -21,14 +22,24 @@ public class SourceSpeedTester {
         void onDone(Map<String, Long> delays);
     }
 
-    public static void test(List<SourceBean> sites, final Callback callback) {
+    public interface Progress {
+        void onProgress(int doneCount, int total, Map<String, Long> partial);
+    }
+
+    public static void test(List<SourceBean> sites, final Callback callback, final Progress progress) {
         final Map<String, Long> delays = new ConcurrentHashMap<>();
-        final ExecutorService pool = Executors.newFixedThreadPool(16);
+        final ExecutorService pool = Executors.newFixedThreadPool(32);
+        final AtomicInteger done = new AtomicInteger();
+        final int total = sites.size();
         for (final SourceBean sb : sites) {
             pool.execute(new Runnable() {
                 @Override
                 public void run() {
                     delays.put(sb.getKey(), measure(sb));
+                    int n = done.incrementAndGet();
+                    if (progress != null && (n % 6 == 0 || n == total)) {
+                        progress.onProgress(n, total, delays);
+                    }
                 }
             });
         }
@@ -37,7 +48,7 @@ public class SourceSpeedTester {
             @Override
             public void run() {
                 try {
-                    pool.awaitTermination(90, TimeUnit.SECONDS);
+                    pool.awaitTermination(75, TimeUnit.SECONDS);
                 } catch (InterruptedException ignored) {
                 }
                 callback.onDone(delays);
@@ -82,8 +93,7 @@ public class SourceSpeedTester {
             }
         });
         try {
-            Long r = fut.get(10, TimeUnit.SECONDS);
-            return r;
+            return fut.get(6, TimeUnit.SECONDS);
         } catch (Exception e) {
             fut.cancel(true);
             return -1L;
