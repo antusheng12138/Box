@@ -858,13 +858,19 @@ public class HomeActivity extends BaseActivity {
     }
 
     final Map<String, Long> speedMap = new HashMap<>();
+    final Map<String, String> speedErr = new HashMap<>();
     static final String SPEED_TEST_KEY = "__speed_test__";
 
     private String speedText(SourceBean val) {
         Long ms = speedMap.get(val.getKey());
         if (ms == null) return val.getName();
         if (ms == -2L) return val.getName() + " · 内置";
-        if (ms < 0) return val.getName() + " · 失效";
+        if (ms < 0) {
+            String err = speedErr.get(val.getKey());
+            if (err == null) return val.getName() + " · 失效";
+            if (err.length() > 34) err = err.substring(0, 34);
+            return val.getName() + " · 失效(" + err + ")";
+        }
         return val.getName() + " · " + ms + "ms";
     }
 
@@ -942,12 +948,14 @@ public class HomeActivity extends BaseActivity {
         dialog.setTip("测速中… 0/" + targets.size());
         SourceSpeedTester.test(targets, new SourceSpeedTester.Callback() {
             @Override
-            public void onDone(final Map<String, Long> delays) {
+            public void onDone(final Map<String, Long> delays, final Map<String, String> errors) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         speedMap.clear();
                         speedMap.putAll(delays);
+                        speedErr.clear();
+                        speedErr.putAll(errors);
                         int ok = 0;
                         long best = Long.MAX_VALUE;
                         String bestName = "";
