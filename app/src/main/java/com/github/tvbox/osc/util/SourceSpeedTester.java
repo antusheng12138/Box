@@ -42,7 +42,7 @@ public class SourceSpeedTester {
         }).start();
     }
 
-    private static final java.util.regex.Pattern URL_RE = java.util.regex.Pattern.compile("https?://[^|\\s\\"',\\]}]+");
+    private static final java.util.regex.Pattern URL_RE = java.util.regex.Pattern.compile("https?://[^|\\s\"',\\]}]+");
 
     private static String extractUrl(SourceBean sb) {
         String api = sb.getApi();
