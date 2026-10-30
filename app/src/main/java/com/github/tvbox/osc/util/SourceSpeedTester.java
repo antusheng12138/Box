@@ -47,6 +47,7 @@ public class SourceSpeedTester {
     private static String extractUrl(SourceBean sb) {
         String api = sb.getApi();
         if (api != null && api.startsWith("http")) return api;
+        if (api != null && api.startsWith("csp_")) return null; // 爬虫源真实地址在 jar 里，不测
         String ext = sb.getExt();
         if (ext == null || ext.isEmpty()) return null;
         java.util.regex.Matcher m = URL_RE.matcher(ext);
