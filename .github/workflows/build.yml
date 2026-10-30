@@ -24,6 +24,11 @@ jobs:
             keytool -genkeypair -v -keystore signing/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
           fi
           cp signing/debug.keystore ~/.android/debug.keystore
+      - name: 生成自定义图标
+        run: |
+          (command -v convert >/dev/null 2>&1) || (sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick)
+          convert icon-src.jpg -resize 512x512! app/src/main/res/drawable/app_icon.png
+          echo "icon done"
       - name: 编译 arm64 release
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
