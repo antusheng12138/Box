@@ -265,6 +265,8 @@ public class HomeActivity extends BaseActivity {
             @Override
             public void onClick(View v) {
                 FastClickCheckUtil.check(v);
+                showSiteSwitch();
+                if (true) return;
                 File dir = getCacheDir();
                 FileUtils.recursiveDelete(dir);
                 dir = getExternalCacheDir();
@@ -294,6 +296,11 @@ public class HomeActivity extends BaseActivity {
         tvName.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
+                File dir = getCacheDir();
+                FileUtils.recursiveDelete(dir);
+                dir = getExternalCacheDir();
+                FileUtils.recursiveDelete(dir);
+                Toast.makeText(HomeActivity.this, getString(R.string.hm_cache_del), Toast.LENGTH_SHORT).show();
                 reloadHome();
                 return true;
             }
