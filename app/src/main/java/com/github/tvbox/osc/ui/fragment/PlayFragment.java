@@ -1050,11 +1050,11 @@ public class PlayFragment extends BaseLazyFragment {
         DanmuFetcher.fetch(vodName, new DanmuFetcher.Callback() {
             @Override
             public void onResult(final String xml) {
-                if (activity == null) return;
-                activity.runOnUiThread(new Runnable() {
+                if (mActivity == null) return;
+                requireActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if (!TextUtils.isEmpty(xml)) Toast.makeText(activity, "已加载网络弹幕", Toast.LENGTH_SHORT).show();
+                        if (!TextUtils.isEmpty(xml)) Toast.makeText(requireActivity(), "已加载网络弹幕", Toast.LENGTH_SHORT).show();
                         checkDanmu(xml);
                     }
                 });
