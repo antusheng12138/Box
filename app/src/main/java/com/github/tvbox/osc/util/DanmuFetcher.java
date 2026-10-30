@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.zip.Inflater;
 
 /**
- * \u7f51\u7edc\u5f39\u5e55\uff1a\u641c B \u7ad9 -> cid -> \u5f39\u5e55 xml\uff08\u89e3 raw-deflate\uff09\uff0c\u5e26\u8bca\u65ad\u72b6\u6001
+ * \u7f51\u7edc\u5f39\u5e55\uff1a\u641c B \u7ad9 -> \u5019\u9009\u9010\u4e2a\u62c9\u5f39\u5e55 -> \u53d6\u6700\u591a\u7684\u90a3\u4e2a
  */
 public class DanmuFetcher {
 
@@ -52,35 +52,36 @@ public class DanmuFetcher {
         int n = arr == null ? 0 : arr.length();
         st.append("\u641c\u7d22code=").append(code).append(" \u6761\u6570=").append(n);
         if (n == 0) return "";
-        String bvid = null;
-        for (int i = 0; i < n && i < 8; i++) {
-            String title = arr.getJSONObject(i).optString("title").replaceAll("<[^>]+>", "");
-            if (title.contains(vodName) || vodName.contains(title)) {
-                bvid = arr.getJSONObject(i).optString("bvid");
-                break;
+
+        String bestXml = "";
+        String bestBv = "";
+        int bestCnt = 0;
+        int tried = 0;
+        for (int i = 0; i < n && i < 6; i++) {
+            String bvid = arr.getJSONObject(i).optString("bvid");
+            if (TextUtils.isEmpty(bvid)) continue;
+            tried++;
+            try {
+                String pageJson = getText("https://api.bilibili.com/x/player/pagelist?bvid=" + bvid);
+                JSONArray pages = new JSONObject(pageJson).optJSONArray("data");
+                if (pages == null || pages.length() == 0) continue;
+                long cid = pages.getJSONObject(0).optLong("cid");
+                if (cid == 0) continue;
+                byte[] rawBytes = getBytes("https://api.bilibili.com/x/v1/dm/list.so?oid=" + cid);
+                String xml = inflate(rawBytes);
+                if (xml == null) continue;
+                int cnt = xml.split("<d p=").length - 1;
+                if (cnt > bestCnt) {
+                    bestCnt = cnt;
+                    bestXml = xml;
+                    bestBv = bvid;
+                }
+                if (bestCnt > 800) break;
+            } catch (Throwable ignored) {
             }
         }
-        if (TextUtils.isEmpty(bvid)) bvid = arr.getJSONObject(0).optString("bvid");
-        st.append(" bv=").append(bvid);
-        if (TextUtils.isEmpty(bvid)) return "";
-        String pageJson = getText("https://api.bilibili.com/x/player/pagelist?bvid=" + bvid);
-        JSONArray pages = new JSONObject(pageJson).optJSONArray("data");
-        if (pages == null || pages.length() == 0) {
-            st.append(" \u65e0\u5206P");
-            return "";
-        }
-        long cid = pages.getJSONObject(0).optLong("cid");
-        st.append(" cid=").append(cid);
-        if (cid == 0) return "";
-        byte[] rawBytes = getBytes("https://api.bilibili.com/x/v1/dm/list.so?oid=" + cid);
-        String xml = inflate(rawBytes);
-        if (xml == null) {
-            st.append(" \u89e3\u538b\u5931\u8d25");
-            return "";
-        }
-        int cnt = xml.split("<d p=").length - 1;
-        st.append(" \u5f39\u5e55=").append(cnt);
-        return cnt > 0 ? xml : "";
+        st.append(" \u8bd5\u4e86=").append(tried).append(" \u6700\u4f18=").append(bestBv).append("(").append(bestCnt).append("\u6761)");
+        return bestCnt > 0 ? bestXml : "";
     }
 
     private static void ensureCookie() {
