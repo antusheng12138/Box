@@ -84,6 +84,7 @@ import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.FileUtils;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.HawkUtils;
+import com.github.tvbox.osc.util.DanmuFetcher;
 import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.M3U8;
 import com.github.tvbox.osc.util.MD5;
@@ -1042,7 +1043,7 @@ public class PlayActivity extends BaseActivity {
                         mController.showParse(false);
                         playUrl(playUrl + url, headers);
                     }
-                    checkDanmu(danmaku);
+                    if (TextUtils.isEmpty(danmaku)) fetchDanmuOnline(); else checkDanmu(danmaku);
                 } catch (Throwable th) {
                     errorWithRetry("获取播放信息错误", true);
                 }
@@ -1051,6 +1052,26 @@ public class PlayActivity extends BaseActivity {
             }
         }
     };
+
+    private void fetchDanmuOnline() {
+        String vodName = mVodInfo != null ? mVodInfo.name : null;
+        if (TextUtils.isEmpty(vodName)) {
+            checkDanmu("");
+            return;
+        }
+        DanmuFetcher.fetch(vodName, new DanmuFetcher.Callback() {
+            @Override
+            public void onResult(final String xml) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!TextUtils.isEmpty(xml)) Toast.makeText(PlayActivity.this, "已加载网络弹幕", Toast.LENGTH_SHORT).show();
+                        checkDanmu(xml);
+                    }
+                });
+            }
+        });
+    }
 
     private void checkDanmu(String danmu) {
         danmuText = danmu;
