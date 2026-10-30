@@ -857,138 +857,143 @@ public class HomeActivity extends BaseActivity {
         ControlManager.get().stopServer();
     }
 
-    // Site Switch on Home Button
     final Map<String, Long> speedMap = new HashMap<>();
+    static final String SPEED_TEST_KEY = "__speed_test__";
 
+    private String speedText(SourceBean val) {
+        Long ms = speedMap.get(val.getKey());
+        if (ms == null) return val.getName();
+        if (ms == -2L) return val.getName() + " · 内置";
+        if (ms < 0) return val.getName() + " · 失效";
+        return val.getName() + " · " + ms + "ms";
+    }
+
+    private SourceBean speedTestItem(String name) {
+        SourceBean item = new SourceBean();
+        item.setKey(SPEED_TEST_KEY);
+        item.setName(name);
+        return item;
+    }
+
+    // Site Switch on Home Button
     void showSiteSwitch() {
-        List<SourceBean> sites = new ArrayList<>();
+        final List<SourceBean> sites = new ArrayList<>();
+        sites.add(speedTestItem("⚡ 点我测速（看哪个源快）"));
         for (SourceBean sb : ApiConfig.get().getSourceBeanList()) {
             if (sb.getHide() == 0) sites.add(sb);
         }
-        if (sites.size() > 0) {
-            SelectDialog<SourceBean> dialog = new SelectDialog<>(HomeActivity.this);
+        if (sites.size() <= 1) return;
 
-            // Multi Column Selection
-            int spanCount = (int) Math.floor(sites.size() / 10);
-            if (spanCount <= 1) spanCount = 1;
-            if (spanCount >= 3) spanCount = 3;
+        final SelectDialog<SourceBean> dialog = new SelectDialog<>(HomeActivity.this);
 
-            TvRecyclerView tvRecyclerView = dialog.findViewById(R.id.list);
-            tvRecyclerView.setLayoutManager(new V7GridLayoutManager(dialog.getContext(), spanCount));
-            ConstraintLayout cl_root = dialog.findViewById(R.id.cl_root);
-            ViewGroup.LayoutParams clp = cl_root.getLayoutParams();
-            if (spanCount != 1) {
-                clp.width = AutoSizeUtils.mm2px(dialog.getContext(), 400 + 260 * (spanCount - 1));
+        int spanCount = (int) Math.floor(sites.size() / 10);
+        if (spanCount <= 1) spanCount = 1;
+        if (spanCount >= 3) spanCount = 3;
+
+        final TvRecyclerView tvRecyclerView = dialog.findViewById(R.id.list);
+        tvRecyclerView.setLayoutManager(new V7GridLayoutManager(dialog.getContext(), spanCount));
+        ConstraintLayout cl_root = dialog.findViewById(R.id.cl_root);
+        ViewGroup.LayoutParams clp = cl_root.getLayoutParams();
+        if (spanCount != 1) {
+            clp.width = AutoSizeUtils.mm2px(dialog.getContext(), 400 + 260 * (spanCount - 1));
+        }
+
+        dialog.setTip(getString(R.string.dia_source) + "（点⚡测速，点源名直接切换）");
+
+        final DiffUtil.ItemCallback<SourceBean> diff = new DiffUtil.ItemCallback<SourceBean>() {
+            @Override
+            public boolean areItemsTheSame(@NonNull @NotNull SourceBean oldItem, @NonNull @NotNull SourceBean newItem) {
+                return oldItem == newItem;
             }
 
-            dialog.setTip(getString(R.string.dia_source));
-            dialog.setAdapter(tvRecyclerView, new SelectDialogAdapter.SelectDialogInterface<SourceBean>() {
-                @Override
-                public void click(SourceBean value, int pos) {
-                    ApiConfig.get().setSourceBean(value);
-                    reloadHome();
-                }
+            @Override
+            public boolean areContentsTheSame(@NonNull @NotNull SourceBean oldItem, @NonNull @NotNull SourceBean newItem) {
+                return oldItem.getKey().equals(newItem.getKey());
+            }
+        };
 
-                @Override
-                public String getDisplay(SourceBean val) {
-                    Long ms = speedMap.get(val.getKey());
-                    if (ms == null) return val.getName();
-                    if (ms == -2L) return val.getName() + " \u00b7 \u5185\u7f6e";
-                    if (ms < 0) return val.getName() + " \u00b7 \u5931\u6548";
-                    return val.getName() + " \u00b7 " + ms + "ms";
+        final SelectDialogAdapter.SelectDialogInterface<SourceBean> iface = new SelectDialogAdapter.SelectDialogInterface<SourceBean>() {
+            @Override
+            public void click(SourceBean value, int pos) {
+                if (SPEED_TEST_KEY.equals(value.getKey())) {
+                    runSpeedTest(sites, dialog, tvRecyclerView, diff);
+                    return;
                 }
-            }, new DiffUtil.ItemCallback<SourceBean>() {
-                @Override
-                public boolean areItemsTheSame(@NonNull @NotNull SourceBean oldItem, @NonNull @NotNull SourceBean newItem) {
-                    return oldItem == newItem;
-                }
+                ApiConfig.get().setSourceBean(value);
+                reloadHome();
+            }
 
-                @Override
-                public boolean areContentsTheSame(@NonNull @NotNull SourceBean oldItem, @NonNull @NotNull SourceBean newItem) {
-                    return oldItem.getKey().equals(newItem.getKey());
-                }
-            }, sites, sites.indexOf(ApiConfig.get().getHomeSourceBean()));
-            final SelectDialog<SourceBean> dialogRef = dialog;
-            final List<SourceBean> sitesRef = sites;
-            final TvRecyclerView rvRef = tvRecyclerView;
-            SourceSpeedTester.test(sites, new SourceSpeedTester.Callback() {
-                @Override
-                public void onDone(Map<String, Long> delays) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            speedMap.clear();
-                            speedMap.putAll(delays);
-                            int ok = 0;
-                            long best = Long.MAX_VALUE;
-                            String bestName = "";
-                            for (SourceBean sb : sitesRef) {
-                                Long ms = speedMap.get(sb.getKey());
-                                if (ms != null && ms >= 0) {
-                                    ok++;
-                                    if (ms < best) { best = ms; bestName = sb.getName(); }
-                                }
-                            }
-                            Collections.sort(sitesRef, new Comparator<SourceBean>() {
-                                @Override
-                                public int compare(SourceBean a, SourceBean b) {
-                                    long ma = speedMap.containsKey(a.getKey()) ? speedMap.get(a.getKey()) : Long.MAX_VALUE;
-                                    long mb = speedMap.containsKey(b.getKey()) ? speedMap.get(b.getKey()) : Long.MAX_VALUE;
-                                    int ra = ma >= 0 && ma < Long.MAX_VALUE ? 0 : (ma == -2L ? 1 : 2);
-                                    int rb = mb >= 0 && mb < Long.MAX_VALUE ? 0 : (mb == -2L ? 1 : 2);
-                                    if (ra != rb) return ra - rb;
-                                    return Long.compare(ma < 0 ? Long.MAX_VALUE : ma, mb < 0 ? Long.MAX_VALUE : mb);
-                                }
-                            });
-                            if (dialogRef.isShowing()) {
-                                String tip = ok > 0 ? ("\u6d4b\u901f\u5b8c\u6210\uff1a" + ok + "\u4e2a\u53ef\u7528\uff0c\u6700\u5feb " + bestName + " " + best + "ms") : "\u6d4b\u901f\u5b8c\u6210\uff1a\u6682\u65e0\u53ef\u7528\u6e90";
-                                dialogRef.setTip(tip);
-                                dialogRef.setAdapter(rvRef, new SelectDialogAdapter.SelectDialogInterface<SourceBean>() {
-                                    @Override
-                                    public void click(SourceBean value, int pos) {
-                                        ApiConfig.get().setSourceBean(value);
-                                        reloadHome();
-                                    }
+            @Override
+            public String getDisplay(SourceBean val) {
+                return speedText(val);
+            }
+        };
 
-                                    @Override
-                                    public String getDisplay(SourceBean val) {
-                                        Long ms = speedMap.get(val.getKey());
-                                        if (ms == null) return val.getName();
-                                        if (ms == -2L) return val.getName() + " \u00b7 \u5185\u7f6e";
-                                        if (ms < 0) return val.getName() + " \u00b7 \u5931\u6548";
-                                        return val.getName() + " \u00b7 " + ms + "ms";
-                                    }
-                                }, new DiffUtil.ItemCallback<SourceBean>() {
-                                    @Override
-                                    public boolean areItemsTheSame(@NonNull @NotNull SourceBean oldItem, @NonNull @NotNull SourceBean newItem) {
-                                        return oldItem == newItem;
-                                    }
+        dialog.setAdapter(tvRecyclerView, iface, diff, sites, 0);
+        dialog.show();
+    }
 
-                                    @Override
-                                    public boolean areContentsTheSame(@NonNull @NotNull SourceBean oldItem, @NonNull @NotNull SourceBean newItem) {
-                                        return oldItem.getKey().equals(newItem.getKey());
-                                    }
-                                }, sitesRef, sitesRef.indexOf(ApiConfig.get().getHomeSourceBean()));
+    void runSpeedTest(final List<SourceBean> sites, final SelectDialog<SourceBean> dialog, final TvRecyclerView rv, final DiffUtil.ItemCallback<SourceBean> diff) {
+        final List<SourceBean> targets = new ArrayList<>();
+        for (SourceBean sb : sites) {
+            if (!SPEED_TEST_KEY.equals(sb.getKey())) targets.add(sb);
+        }
+        dialog.setTip("测速中…请稍候（测完自动排序）");
+        SourceSpeedTester.test(targets, new SourceSpeedTester.Callback() {
+            @Override
+            public void onDone(final Map<String, Long> delays) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        speedMap.clear();
+                        speedMap.putAll(delays);
+                        int ok = 0;
+                        long best = Long.MAX_VALUE;
+                        String bestName = "";
+                        for (SourceBean sb : targets) {
+                            Long ms = speedMap.get(sb.getKey());
+                            if (ms != null && ms >= 0) {
+                                ok++;
+                                if (ms < best) { best = ms; bestName = sb.getName(); }
                             }
                         }
-                    });
-                }
-            });
-            dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                @Override
-                public void onDismiss(DialogInterface dialog) {
-//                    if (homeSourceKey != null && !homeSourceKey.equals(Hawk.get(HawkConfig.HOME_API, ""))) {
-//                        Intent intent = new Intent(getApplicationContext(), HomeActivity.class);
-//                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
-//                        Bundle bundle = new Bundle();
-//                        bundle.putBoolean("useCache", true);
-//                        intent.putExtras(bundle);
-//                        HomeActivity.this.startActivity(intent);
-//                    }
-                }
-            });
-            dialog.show();
-        }
+                        Collections.sort(targets, new Comparator<SourceBean>() {
+                            @Override
+                            public int compare(SourceBean a, SourceBean b) {
+                                long ma = speedMap.containsKey(a.getKey()) ? speedMap.get(a.getKey()) : Long.MAX_VALUE;
+                                long mb = speedMap.containsKey(b.getKey()) ? speedMap.get(b.getKey()) : Long.MAX_VALUE;
+                                int ra = ma >= 0 && ma < Long.MAX_VALUE ? 0 : (ma == -2L ? 1 : 2);
+                                int rb = mb >= 0 && mb < Long.MAX_VALUE ? 0 : (mb == -2L ? 1 : 2);
+                                if (ra != rb) return ra - rb;
+                                return Long.compare(ma < 0 ? Long.MAX_VALUE : ma, mb < 0 ? Long.MAX_VALUE : mb);
+                            }
+                        });
+                        sites.clear();
+                        sites.add(speedTestItem("⚡ 测速完成（点我重测）"));
+                        sites.addAll(targets);
+                        if (dialog.isShowing()) {
+                            dialog.setTip(ok > 0 ? ("测速完成：" + ok + " 个可用，最快 " + bestName + " " + best + "ms") : "测速完成：暂无可用源");
+                            dialog.setAdapter(rv, new SelectDialogAdapter.SelectDialogInterface<SourceBean>() {
+                                @Override
+                                public void click(SourceBean value, int pos) {
+                                    if (SPEED_TEST_KEY.equals(value.getKey())) {
+                                        runSpeedTest(sites, dialog, rv, diff);
+                                        return;
+                                    }
+                                    ApiConfig.get().setSourceBean(value);
+                                    reloadHome();
+                                }
+
+                                @Override
+                                public String getDisplay(SourceBean val) {
+                                    return speedText(val);
+                                }
+                            }, diff, sites, 0);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     void reloadHome() {
