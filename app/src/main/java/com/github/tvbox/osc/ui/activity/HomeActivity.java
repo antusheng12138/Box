@@ -886,7 +886,7 @@ public class HomeActivity extends BaseActivity {
                 @Override
                 public void click(SourceBean value, int pos) {
                     ApiConfig.get().setSourceBean(value);
-                    Toast.makeText(HomeActivity.this, "已切换源：" + value.getName() + "，长按左上角刷新", Toast.LENGTH_SHORT).show();
+                    reloadHome();
                 }
 
                 @Override
@@ -947,7 +947,7 @@ public class HomeActivity extends BaseActivity {
                                     @Override
                                     public void click(SourceBean value, int pos) {
                                         ApiConfig.get().setSourceBean(value);
-                                        Toast.makeText(HomeActivity.this, "已切换源：" + value.getName() + "，长按左上角刷新", Toast.LENGTH_SHORT).show();
+                                        reloadHome();
                                     }
 
                                     @Override
