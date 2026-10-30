@@ -1055,6 +1055,7 @@ public class PlayActivity extends BaseActivity {
 
     private void fetchDanmuOnline() {
         String vodName = mVodInfo != null ? mVodInfo.name : null;
+        Toast.makeText(PlayActivity.this, "弹幕：正在为「" + vodName + "」搜索网络弹幕…", Toast.LENGTH_SHORT).show();
         if (TextUtils.isEmpty(vodName)) {
             checkDanmu("");
             return;
