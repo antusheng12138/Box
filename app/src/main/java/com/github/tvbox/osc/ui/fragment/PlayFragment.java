@@ -1053,7 +1053,7 @@ public class PlayFragment extends BaseLazyFragment {
                 .replaceAll("\\s+", " ").trim();
         DanmuFetcher.fetch(vodName, new DanmuFetcher.Callback() {
             @Override
-            public void onResult(final String xml) {
+            public void onResult(final String xml, final String status) {
                 if (mActivity == null) return;
                 requireActivity().runOnUiThread(new Runnable() {
                     @Override
@@ -1061,7 +1061,7 @@ public class PlayFragment extends BaseLazyFragment {
                         if (!TextUtils.isEmpty(xml)) {
                             Toast.makeText(requireActivity(), "已加载网络弹幕", Toast.LENGTH_LONG).show();
                         } else {
-                            Toast.makeText(requireActivity(), "没搜到网络弹幕", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(requireActivity(), "弹幕失败: " + status, Toast.LENGTH_LONG).show();
                         }
                         checkDanmu(xml);
                     }

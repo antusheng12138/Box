@@ -1065,14 +1065,14 @@ public class PlayActivity extends BaseActivity {
                 .replaceAll("\\s+", " ").trim();
         DanmuFetcher.fetch(vodName, new DanmuFetcher.Callback() {
             @Override
-            public void onResult(final String xml) {
+            public void onResult(final String xml, final String status) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         if (!TextUtils.isEmpty(xml)) {
                             Toast.makeText(PlayActivity.this, "已加载网络弹幕", Toast.LENGTH_LONG).show();
                         } else {
-                            Toast.makeText(PlayActivity.this, "没搜到网络弹幕", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(PlayActivity.this, "弹幕失败: " + status, Toast.LENGTH_LONG).show();
                         }
                         checkDanmu(xml);
                     }
