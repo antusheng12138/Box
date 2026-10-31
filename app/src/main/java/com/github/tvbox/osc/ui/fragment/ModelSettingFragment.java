@@ -134,31 +134,12 @@ public class ModelSettingFragment extends BaseLazyFragment {
                 val.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
                 line.addView(val);
 
-                String v = Hawk.get(SLOT_KEYS[i], "");
-                val.setText(v.isEmpty() ? "点击设置" : v);
+                refreshSlotText(val, slot);
 
                 line.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v2) {
-                        ApiDialog dialog = new ApiDialog(mActivity);
-                        EventBus.getDefault().register(dialog);
-                        dialog.setOnListener(new ApiDialog.OnListener() {
-                            @Override
-                            public void onchange(String api) {
-                                Hawk.put(SLOT_KEYS[slot], api);
-                                Hawk.put(HawkConfig.API_URL, api);
-                                val.setText(api);
-                                android.widget.Toast.makeText(mActivity, "已切换到视频源" + (slot + 2), android.widget.Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                            @Override
-                            public void onDismiss(DialogInterface dialog) {
-                                ((BaseActivity) mActivity).hideSystemUI(true);
-                                EventBus.getDefault().unregister(dialog);
-                            }
-                        });
-                        dialog.show();
+                        showSlotEditor(slot);
                     }
                 });
 
@@ -167,6 +148,75 @@ public class ModelSettingFragment extends BaseLazyFragment {
         } catch (Throwable ignored) {
         }
     }
+
+    private void refreshSlotText(android.widget.TextView val, int slot) {
+        String v = Hawk.get(SLOT_KEYS[slot], "");
+        val.setText(v.isEmpty() ? "点击设置" : v);
+    }
+
+    private void showSlotEditor(final int slot) {
+        try {
+            android.app.AlertDialog.Builder b = new android.app.AlertDialog.Builder(mActivity);
+            b.setTitle("视频源" + (slot + 2));
+            final android.widget.EditText input = new android.widget.EditText(mActivity);
+            input.setText(Hawk.get(SLOT_KEYS[slot], ""));
+            input.setSelection(input.getText().length());
+            input.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                    | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+            input.setSingleLine(true);
+            b.setView(input);
+            b.setPositiveButton("保存并切换", new android.content.DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(android.content.DialogInterface d, int w) {
+                    String api = input.getText().toString().trim();
+                    if (api.isEmpty()) return;
+                    Hawk.put(SLOT_KEYS[slot], api);
+                    Hawk.put(HawkConfig.API_URL, api);
+                    Toast.makeText(mActivity, "已切换到视频源" + (slot + 2) + "，返回首页生效", Toast.LENGTH_SHORT).show();
+                    refreshAllSlotTexts();
+                }
+            });
+            b.setNeutralButton("仅保存", new android.content.DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(android.content.DialogInterface d, int w) {
+                    Hawk.put(SLOT_KEYS[slot], input.getText().toString().trim());
+                    refreshAllSlotTexts();
+                }
+            });
+            b.setNegativeButton("清空", new android.content.DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(android.content.DialogInterface d, int w) {
+                    Hawk.put(SLOT_KEYS[slot], "");
+                    refreshAllSlotTexts();
+                }
+            });
+            b.show();
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void refreshAllSlotTexts() {
+        try {
+            View llApi = findViewById(R.id.llApi);
+            ViewGroup rowHost = (ViewGroup) llApi.getParent();
+            for (int i = 0; i < SLOT_KEYS.length && i < rowHost.getChildCount(); i++) {
+                View child = rowHost.getChildAt(i);
+                if (!(child instanceof android.widget.LinearLayout)) continue;
+                android.widget.LinearLayout row = (android.widget.LinearLayout) child;
+                // 行内最后一个 TextView 是值
+                for (int k = row.getChildCount() - 1; k >= 0; k--) {
+                    if (row.getChildAt(k) instanceof android.widget.TextView) {
+                        android.widget.TextView tv = (android.widget.TextView) row.getChildAt(k);
+                        String v = Hawk.get(SLOT_KEYS[i], "");
+                        tv.setText(v.isEmpty() ? "点击设置" : v);
+                        break;
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
 
     @Override
     protected int getLayoutResID() {
