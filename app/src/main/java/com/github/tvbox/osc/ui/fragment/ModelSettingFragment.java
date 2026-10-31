@@ -65,12 +65,6 @@ public class ModelSettingFragment extends BaseLazyFragment {
     private static final String[] SLOT_KEYS = {
             HawkConfig.API_URL_2, HawkConfig.API_URL_3, HawkConfig.API_URL_4, HawkConfig.API_URL_5, HawkConfig.API_URL_6
     };
-    private static final int[] SLOT_LL = {
-            R.id.llApi2, R.id.llApi3, R.id.llApi4, R.id.llApi5, R.id.llApi6
-    };
-    private static final int[] SLOT_TV = {
-            R.id.tvApi2, R.id.tvApi3, R.id.tvApi4, R.id.tvApi5, R.id.tvApi6
-    };
 
     private TextView tvDebugOpen;
     private TextView tvApi;
@@ -105,6 +99,75 @@ public class ModelSettingFragment extends BaseLazyFragment {
         return this;
     }
 
+    private void addApiSlots() {
+        try {
+            View llApi = findViewById(R.id.llApi);
+            ViewGroup rowHost = (ViewGroup) llApi.getParent();
+            ViewGroup outer = (ViewGroup) rowHost.getParent();
+            int insertAt = outer.indexOfChild(rowHost) + 1;
+            int h = getResources().getDimensionPixelSize(R.dimen.vs_50);
+            int mb = getResources().getDimensionPixelSize(R.dimen.vs_10);
+            int px = getResources().getDimensionPixelSize(R.dimen.vs_20);
+            for (int i = 0; i < SLOT_KEYS.length; i++) {
+                final int slot = i;
+                android.widget.LinearLayout line = new android.widget.LinearLayout(mContext);
+                line.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+                line.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                line.setBackgroundResource(R.drawable.shape_setting_model_focus);
+                line.setFocusable(true);
+                android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, h);
+                lp.setMargins(0, 0, 0, mb);
+                line.setLayoutParams(lp);
+                line.setPadding(px, 0, px, 0);
+
+                android.widget.TextView label = new android.widget.TextView(mContext);
+                label.setText("视频源" + (i + 2));
+                label.setTextColor(0xFFFFFFFF);
+                label.setTextSize(20);
+                line.addView(label);
+
+                android.widget.TextView val = new android.widget.TextView(mContext);
+                val.setTextColor(0xFFFFFFFF);
+                val.setTextSize(20);
+                val.setSingleLine(true);
+                val.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+                line.addView(val);
+
+                String v = Hawk.get(SLOT_KEYS[i], "");
+                val.setText(v.isEmpty() ? "点击设置" : v);
+
+                line.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v2) {
+                        ApiDialog dialog = new ApiDialog(mActivity);
+                        EventBus.getDefault().register(dialog);
+                        dialog.setOnListener(new ApiDialog.OnListener() {
+                            @Override
+                            public void onchange(String api) {
+                                Hawk.put(SLOT_KEYS[slot], api);
+                                Hawk.put(HawkConfig.API_URL, api);
+                                val.setText(api);
+                                android.widget.Toast.makeText(mActivity, "已切换到视频源" + (slot + 2), android.widget.Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialog) {
+                                ((BaseActivity) mActivity).hideSystemUI(true);
+                                EventBus.getDefault().unregister(dialog);
+                            }
+                        });
+                        dialog.show();
+                    }
+                });
+
+                outer.addView(line, insertAt + i);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
     @Override
     protected int getLayoutResID() {
         return R.layout.fragment_model;
@@ -119,11 +182,7 @@ public class ModelSettingFragment extends BaseLazyFragment {
         tvApi = findViewById(R.id.tvApi);
         tvApi.setText(Hawk.get(HawkConfig.API_URL, ""));
 
-        for (int i = 0; i < SLOT_KEYS.length; i++) {
-            TextView slotTv = findViewById(SLOT_TV[i]);
-            String v = Hawk.get(SLOT_KEYS[i], "");
-            slotTv.setText(v.isEmpty() ? "\u70b9\u51fb\u8bbe\u7f6e" : v);
-        }
+        addApiSlots();
         // Home Section
         tvHomeApi = findViewById(R.id.tvHomeApi);
         tvHomeApi.setText(ApiConfig.get().getHomeSourceBean().getName());
@@ -193,35 +252,6 @@ public class ModelSettingFragment extends BaseLazyFragment {
                 dialog.show();
             }
         });
-        for (int i = 0; i < SLOT_KEYS.length; i++) {
-            final int slot = i;
-            findViewById(SLOT_LL[i]).setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    FastClickCheckUtil.check(v);
-                    ApiDialog dialog = new ApiDialog(mActivity);
-                    EventBus.getDefault().register(dialog);
-                    dialog.setOnListener(new ApiDialog.OnListener() {
-                        @Override
-                        public void onchange(String api) {
-                            Hawk.put(SLOT_KEYS[slot], api);
-                            Hawk.put(HawkConfig.API_URL, api);
-                            ((TextView) findViewById(SLOT_TV[slot])).setText(api);
-                            ((TextView) findViewById(R.id.tvApi)).setText(api);
-                            android.widget.Toast.makeText(mActivity, "\u5df2\u5207\u6362\u5230\u89c6\u9891\u6e90" + (slot + 2) + "\uff0c\u8fd4\u56de\u9996\u9875\u751f\u6548", android.widget.Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                    dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                        @Override
-                        public void onDismiss(DialogInterface dialog) {
-                            ((BaseActivity) mActivity).hideSystemUI(true);
-                            EventBus.getDefault().unregister(dialog);
-                        }
-                    });
-                    dialog.show();
-                }
-            });
-        }
         findViewById(R.id.llApiHistory).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
