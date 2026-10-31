@@ -62,6 +62,16 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer;
  * @description:
  */
 public class ModelSettingFragment extends BaseLazyFragment {
+    private static final String[] SLOT_KEYS = {
+            HawkConfig.API_URL_2, HawkConfig.API_URL_3, HawkConfig.API_URL_4, HawkConfig.API_URL_5, HawkConfig.API_URL_6
+    };
+    private static final int[] SLOT_LL = {
+            R.id.llApi2, R.id.llApi3, R.id.llApi4, R.id.llApi5, R.id.llApi6
+    };
+    private static final int[] SLOT_TV = {
+            R.id.tvApi2, R.id.tvApi3, R.id.tvApi4, R.id.tvApi5, R.id.tvApi6
+    };
+
     private TextView tvDebugOpen;
     private TextView tvApi;
     // Home Section
@@ -108,6 +118,12 @@ public class ModelSettingFragment extends BaseLazyFragment {
         tvDebugOpen.setText(Hawk.get(HawkConfig.DEBUG_OPEN, false) ? "开启" : "关闭");
         tvApi = findViewById(R.id.tvApi);
         tvApi.setText(Hawk.get(HawkConfig.API_URL, ""));
+
+        for (int i = 0; i < SLOT_KEYS.length; i++) {
+            TextView slotTv = findViewById(SLOT_TV[i]);
+            String v = Hawk.get(SLOT_KEYS[i], "");
+            slotTv.setText(v.isEmpty() ? "\u70b9\u51fb\u8bbe\u7f6e" : v);
+        }
         // Home Section
         tvHomeApi = findViewById(R.id.tvHomeApi);
         tvHomeApi.setText(ApiConfig.get().getHomeSourceBean().getName());
@@ -177,6 +193,35 @@ public class ModelSettingFragment extends BaseLazyFragment {
                 dialog.show();
             }
         });
+        for (int i = 0; i < SLOT_KEYS.length; i++) {
+            final int slot = i;
+            findViewById(SLOT_LL[i]).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    FastClickCheckUtil.check(v);
+                    ApiDialog dialog = new ApiDialog(mActivity);
+                    EventBus.getDefault().register(dialog);
+                    dialog.setOnListener(new ApiDialog.OnListener() {
+                        @Override
+                        public void onchange(String api) {
+                            Hawk.put(SLOT_KEYS[slot], api);
+                            Hawk.put(HawkConfig.API_URL, api);
+                            ((TextView) findViewById(SLOT_TV[slot])).setText(api);
+                            ((TextView) findViewById(R.id.tvApi)).setText(api);
+                            android.widget.Toast.makeText(mActivity, "\u5df2\u5207\u6362\u5230\u89c6\u9891\u6e90" + (slot + 2) + "\uff0c\u8fd4\u56de\u9996\u9875\u751f\u6548", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                        @Override
+                        public void onDismiss(DialogInterface dialog) {
+                            ((BaseActivity) mActivity).hideSystemUI(true);
+                            EventBus.getDefault().unregister(dialog);
+                        }
+                    });
+                    dialog.show();
+                }
+            });
+        }
         findViewById(R.id.llApiHistory).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
