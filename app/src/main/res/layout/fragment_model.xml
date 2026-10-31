@@ -172,7 +172,6 @@
                             android:focusable="true"
                             android:src="@drawable/hm_history" />
                     </LinearLayout>
-
                 <LinearLayout
                     android:id="@+id/llApi2"
                     android:layout_width="match_parent"
@@ -312,6 +311,7 @@
                         android:textColor="@android:color/white"
                         android:textSize="@dimen/ts_24" />
                 </LinearLayout>
+
 
                 <LinearLayout
                     android:id="@+id/llApi6"
